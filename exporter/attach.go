@@ -49,7 +49,7 @@ func attach(module *bcc.Module, kprobes, kretprobes, tracepoints, rawTracepoints
 		fmt.Println("!!! got to pass in attachUprobes")
 		return nil, fmt.Errorf("failed to attach uprobes: %s", err)
 	}
-	if err := mergedTags(tags, attachUprobes, module, uretprobes); err != nil {
+	if err := mergedTags(tags, attachUretprobes, module, uretprobes); err != nil {
 		fmt.Println("!!! got to pass in attachUretprobes")
 		return nil, fmt.Errorf("failed to attach uretprobes: %s", err)
 	}
@@ -62,7 +62,7 @@ type probeLoader func(string) (int, error)
 
 // probeAttacher attaches loaded some sort of probe to some sort of tracepoint
 type probeAttacher func(string, int) error
-type probeAttacher2 func(string, string, int) error
+type probeAttacher2 func(string, string, int, int) error
 type probeAttacherWithMaxActive func(string, int, int) error
 type probeAttacherWithMaxActive2 func(string, string, int, int) error
 
@@ -111,7 +111,8 @@ func attachSomething2(module *bcc.Module, loader probeLoader, attacher probeAtta
 		splits := strings.Split(probe, "|")
 		name, symbol := splits[0], splits[1]
 
-		err = attacher(name, symbol, target)
+		fmt.Println("Passing ", name, " AND ", symbol, " WITH ", target, "to attacher")
+		err = attacher(name, symbol, target, -1)
 		if err != nil {
 			return nil, fmt.Errorf("failed to attach probe %q to %q: %s", probe, targetName, err)
 		}
@@ -124,13 +125,6 @@ func attachSomething2(module *bcc.Module, loader probeLoader, attacher probeAtta
 func withMaxActive(attacherWithMaxActive probeAttacherWithMaxActive, maxActive int) probeAttacher {
 	return func(probe string, target int) error {
 		return attacherWithMaxActive(probe, target, maxActive)
-	}
-}
-
-// withMaxActive2 partially applies the maxactive value as needed by AttackK*probe
-func withMaxActive2(attacherWithMaxActive probeAttacherWithMaxActive2, maxActive int) probeAttacher2 {
-	return func(probe string, symbol string, target int) error {
-		return attacherWithMaxActive(probe, symbol, target, maxActive)
 	}
 }
 
@@ -155,9 +149,9 @@ func attachRawTracepoints(module *bcc.Module, tracepoints map[string]string) (ma
 }
 
 func attachUprobes(module *bcc.Module, uprobes map[string]string) (map[string]uint64, error) {
-	return attachSomething2(module, module.LoadUprobe, withMaxActive2(module.AttachUprobe, 0), uprobes)
+	return attachSomething2(module, module.LoadUprobe, module.AttachUprobe, uprobes)
 }
 
 func attachUretprobes(module *bcc.Module, uretprobes map[string]string) (map[string]uint64, error) {
-	return attachSomething2(module, module.LoadUprobe, withMaxActive2(module.AttachUretprobe, 0), uretprobes)
+	return attachSomething2(module, module.LoadUprobe, module.AttachUretprobe, uretprobes)
 }
