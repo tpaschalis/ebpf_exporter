@@ -23,6 +23,8 @@ type Program struct {
 	Code           string            `yaml:"code"`
 	Cflags         []string          `yaml:"cflags"`
 	Kaddrs         []string          `yaml:"kaddrs"`
+	Uprobes        map[string]string `yaml:"uprobes"`
+	Uretprobes     map[string]string `yaml:"uretprobes"`
 }
 
 // PerfEvent describes perf_event to attach to
@@ -100,7 +102,7 @@ func ValidateConfig(c *Config) error {
 		if program.Code == "" {
 			return fmt.Errorf("program (%s) has no code section", program.Name)
 		}
-		if len(program.Kprobes)+len(program.Kretprobes)+len(program.Tracepoints)+len(program.RawTracepoints)+len(program.PerfEvents) == 0 {
+		if len(program.Kprobes)+len(program.Kretprobes)+len(program.Tracepoints)+len(program.RawTracepoints)+len(program.PerfEvents)+len(program.Uprobes)+len(program.Uretprobes) == 0 {
 			return fmt.Errorf("program (%s) has no probes, tracepoints, or perf events", program.Name)
 		}
 	}

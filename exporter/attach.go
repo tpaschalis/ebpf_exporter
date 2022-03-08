@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/iovisor/gobpf/bcc"
 )
@@ -25,7 +26,7 @@ func mergedTags(dst map[string]uint64, attach attacher, module *bcc.Module, atta
 }
 
 // attach attaches functions to tracing points in provided module
-func attach(module *bcc.Module, kprobes, kretprobes, tracepoints, rawTracepoints map[string]string) (map[string]uint64, error) {
+func attach(module *bcc.Module, kprobes, kretprobes, tracepoints, rawTracepoints, uprobes, uretprobes map[string]string) (map[string]uint64, error) {
 	tags := map[string]uint64{}
 
 	if err := mergedTags(tags, attachKprobes, module, kprobes); err != nil {
@@ -44,6 +45,15 @@ func attach(module *bcc.Module, kprobes, kretprobes, tracepoints, rawTracepoints
 		return nil, fmt.Errorf("failed to attach raw tracepoints: %s", err)
 	}
 
+	if err := mergedTags(tags, attachUprobes, module, uprobes); err != nil {
+		fmt.Println("!!! got to pass in attachUprobes")
+		return nil, fmt.Errorf("failed to attach uprobes: %s", err)
+	}
+	if err := mergedTags(tags, attachUprobes, module, uretprobes); err != nil {
+		fmt.Println("!!! got to pass in attachUretprobes")
+		return nil, fmt.Errorf("failed to attach uretprobes: %s", err)
+	}
+
 	return tags, nil
 }
 
@@ -52,7 +62,9 @@ type probeLoader func(string) (int, error)
 
 // probeAttacher attaches loaded some sort of probe to some sort of tracepoint
 type probeAttacher func(string, int) error
+type probeAttacher2 func(string, string, int) error
 type probeAttacherWithMaxActive func(string, int, int) error
+type probeAttacherWithMaxActive2 func(string, string, int, int) error
 
 // attachSomething attaches some kind of probes and returns program tags
 func attachSomething(module *bcc.Module, loader probeLoader, attacher probeAttacher, probes map[string]string) (map[string]uint64, error) {
@@ -80,10 +92,45 @@ func attachSomething(module *bcc.Module, loader probeLoader, attacher probeAttac
 	return tags, nil
 }
 
+func attachSomething2(module *bcc.Module, loader probeLoader, attacher probeAttacher2, probes map[string]string) (map[string]uint64, error) {
+	tags := map[string]uint64{}
+
+	for probe, targetName := range probes {
+		target, err := loader(targetName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load probe %q: %s", targetName, err)
+		}
+
+		tag, err := module.GetProgramTag(target)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get program tag for %q (fd=%d): %s", targetName, target, err)
+		}
+
+		tags[targetName] = tag
+
+		splits := strings.Split(probe, "|")
+		name, symbol := splits[0], splits[1]
+
+		err = attacher(name, symbol, target)
+		if err != nil {
+			return nil, fmt.Errorf("failed to attach probe %q to %q: %s", probe, targetName, err)
+		}
+	}
+
+	return tags, nil
+}
+
 // withMaxActive partially applies the maxactive value as needed by AttackK*probe
 func withMaxActive(attacherWithMaxActive probeAttacherWithMaxActive, maxActive int) probeAttacher {
 	return func(probe string, target int) error {
 		return attacherWithMaxActive(probe, target, maxActive)
+	}
+}
+
+// withMaxActive2 partially applies the maxactive value as needed by AttackK*probe
+func withMaxActive2(attacherWithMaxActive probeAttacherWithMaxActive2, maxActive int) probeAttacher2 {
+	return func(probe string, symbol string, target int) error {
+		return attacherWithMaxActive(probe, symbol, target, maxActive)
 	}
 }
 
@@ -105,4 +152,12 @@ func attachTracepoints(module *bcc.Module, tracepoints map[string]string) (map[s
 // attachRawTracepoints attaches functions to their tracepoints in provided module
 func attachRawTracepoints(module *bcc.Module, tracepoints map[string]string) (map[string]uint64, error) {
 	return attachSomething(module, module.LoadRawTracepoint, module.AttachRawTracepoint, tracepoints)
+}
+
+func attachUprobes(module *bcc.Module, uprobes map[string]string) (map[string]uint64, error) {
+	return attachSomething2(module, module.LoadUprobe, withMaxActive2(module.AttachUprobe, 0), uprobes)
+}
+
+func attachUretprobes(module *bcc.Module, uretprobes map[string]string) (map[string]uint64, error) {
+	return attachSomething2(module, module.LoadUprobe, withMaxActive2(module.AttachUretprobe, 0), uretprobes)
 }

@@ -81,7 +81,7 @@ func (e *Exporter) Attach() error {
 			return fmt.Errorf("error compiling module for program %q", program.Name)
 		}
 
-		tags, err := attach(module, program.Kprobes, program.Kretprobes, program.Tracepoints, program.RawTracepoints)
+		tags, err := attach(module, program.Kprobes, program.Kretprobes, program.Tracepoints, program.RawTracepoints, program.Uprobes, program.Uretprobes)
 
 		if err != nil {
 			return fmt.Errorf("failed to attach to program %q: %s", program.Name, err)
