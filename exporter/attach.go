@@ -96,20 +96,22 @@ func attachSomething2(module *bcc.Module, loader probeLoader, attacher probeAtta
 	tags := map[string]uint64{}
 
 	for probe, targetName := range probes {
-		target, err := loader(targetName)
+		splits := strings.Split(targetName, "|")
+		name, symbol := splits[0], splits[1]
+
+		target, err := loader(name)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load probe %q: %s", targetName, err)
+			return nil, fmt.Errorf("failed to load probe %q: %s", name, err)
 		}
+
+		fmt.Println("We have ", name, " AND ", symbol, " WITH ", target, "to attacher")
 
 		tag, err := module.GetProgramTag(target)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get program tag for %q (fd=%d): %s", targetName, target, err)
+			return nil, fmt.Errorf("failed to get program tag for %q (fd=%d): %s", name, target, err)
 		}
 
 		tags[targetName] = tag
-
-		splits := strings.Split(probe, "|")
-		name, symbol := splits[0], splits[1]
 
 		fmt.Println("Passing ", name, " AND ", symbol, " WITH ", target, "to attacher")
 		err = attacher(name, symbol, target, -1)
