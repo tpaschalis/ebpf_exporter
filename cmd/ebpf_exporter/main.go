@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/cloudflare/ebpf_exporter/config"
-	"github.com/cloudflare/ebpf_exporter/exporter"
+	"github.com/tpaschalis/ebpf_exporter/config"
+	"github.com/tpaschalis/ebpf_exporter/exporter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"

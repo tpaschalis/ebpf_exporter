@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/cloudflare/ebpf_exporter/config"
+	"github.com/tpaschalis/ebpf_exporter/config"
 )
 
 func TestDnameDecoder(t *testing.T) {

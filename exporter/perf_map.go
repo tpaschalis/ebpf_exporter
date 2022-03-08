@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/cloudflare/ebpf_exporter/config"
-	"github.com/cloudflare/ebpf_exporter/decoder"
+	"github.com/tpaschalis/ebpf_exporter/config"
+	"github.com/tpaschalis/ebpf_exporter/decoder"
 	"github.com/iovisor/gobpf/bcc"
 	"github.com/prometheus/client_golang/prometheus"
 )

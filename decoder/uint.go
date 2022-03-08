@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cloudflare/ebpf_exporter/config"
+	"github.com/tpaschalis/ebpf_exporter/config"
 	"github.com/iovisor/gobpf/bcc"
 )
 
