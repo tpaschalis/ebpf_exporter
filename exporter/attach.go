@@ -97,9 +97,9 @@ func attachSomething2(module *bcc.Module, loader probeLoader, attacher probeAtta
 
 	for probe, targetName := range probes {
 		splits := strings.Split(targetName, "|")
-		name, symbol := splits[0], splits[1]
+		name, symbol, uprobefunc := splits[0], splits[1], splits[2]
 
-		target, err := loader(name)
+		target, err := loader(uprobefunc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load probe %q: %s", name, err)
 		}
@@ -151,9 +151,11 @@ func attachRawTracepoints(module *bcc.Module, tracepoints map[string]string) (ma
 }
 
 func attachUprobes(module *bcc.Module, uprobes map[string]string) (map[string]uint64, error) {
+	fmt.Println("About to call AttachUprobe")
 	return attachSomething2(module, module.LoadUprobe, module.AttachUprobe, uprobes)
 }
 
 func attachUretprobes(module *bcc.Module, uretprobes map[string]string) (map[string]uint64, error) {
+	fmt.Println("About to call AttachUretprobe")
 	return attachSomething2(module, module.LoadUprobe, module.AttachUretprobe, uretprobes)
 }
